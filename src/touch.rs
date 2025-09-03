@@ -1,6 +1,7 @@
+use embedder_traits::TouchEventResult;
+use embedder_traits::TouchId;
 use euclid::{Point2D, Scale, Vector2D};
 use log::warn;
-use script_traits::{EventResult, TouchId};
 use webrender_api::units::DevicePixel;
 
 use self::TouchState::*;
@@ -70,13 +71,19 @@ pub enum TouchAction {
     NoAction,
 }
 
-impl TouchHandler {
-    /// Create a touch handler.
-    pub fn new() -> Self {
-        TouchHandler {
+impl Default for TouchHandler {
+    fn default() -> Self {
+        Self {
             state: Nothing,
             active_touch_points: Vec::new(),
         }
+    }
+}
+
+impl TouchHandler {
+    /// Create a touch handler.
+    pub fn new() -> Self {
+        Self::default()
     }
 
     /// Handle touch down input.
@@ -207,11 +214,11 @@ impl TouchHandler {
     }
 
     /// Handle event result.
-    pub fn on_event_processed(&mut self, result: EventResult) {
+    pub fn on_event_processed(&mut self, result: TouchEventResult) {
         if let WaitingForScript = self.state {
             self.state = match result {
-                EventResult::DefaultPrevented => DefaultPrevented,
-                EventResult::DefaultAllowed => match self.touch_count() {
+                TouchEventResult::DefaultPrevented(_, _) => DefaultPrevented,
+                TouchEventResult::DefaultAllowed(_, _) => match self.touch_count() {
                     1 => Touching,
                     2 => Pinching,
                     _ => MultiTouch,

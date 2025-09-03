@@ -13,6 +13,8 @@ pub mod config;
 pub mod errors;
 /// Utilities to handle keyboard inputs and states.
 pub mod keyboard;
+/// Verso's rendering context.
+pub mod rendering;
 /// Utilities to handle touch inputs and states.
 pub mod touch;
 /// Main entry types and functions.
@@ -27,3 +29,14 @@ pub use errors::{Error, Result};
 pub use verso::Verso;
 /// Re-exporting Winit for the sake of convenience.
 pub use winit;
+/// Bookmark manager
+pub mod bookmark;
+/// Download manager
+pub mod download;
+/// Storage manager, handles all the storage operations,
+/// such as reading and writing bookmarks, preferences, etc.
+pub(crate) mod storage;
+/// Window tabs manager
+pub mod tab;
+/// Utilities
+pub(crate) mod utils;

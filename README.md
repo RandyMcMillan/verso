@@ -4,7 +4,7 @@
 
 A web browser that plays old world blues to build new world hope.
 
-![](https://github.com/pewsheen/verso/assets/460329/7df44c7d-a4c5-4393-8378-a8b7bc438b03)
+<img src="https://github.com/user-attachments/assets/ca124b2b-c54c-4796-b2cb-0819228495b6" width="600" alt="The Verso logo with a sitting cat, written in ASCII art, rendered in orange on black as on an old CRT monitor" />
 
 Verso is a web browser built on top of the [Servo](https://servo.org/) web engine. We aim to explore embedding solutions for Servo while growing it into a mature browser one day.
 This means we want to experiment with multi-view and multi-window first and then build UI elements entirely from Servo itself. At the moment, [Servoshell](https://servo.org/download/) should provide a better user experience.
@@ -38,8 +38,9 @@ cargo run
 - Install [Homebrew](https://brew.sh/) and then install other tools:
 
 ```sh
-brew install cmake pkg-config harfbuzz
-pip install mako
+brew install cmake pkg-config harfbuzz python@3 # Install required dependencies CMake, pkg-config, HarfBuzz, and Python 3.
+pip3 install mako # Install the Mako templating engine
+curl https://sh.rustup.rs -sSf | sh # Install Rust and Cargo
 ```
 
 - Build & run:
@@ -55,13 +56,21 @@ cargo run
 For unified environment setup and package experience, we choose Flatpak to build the project from the start.
 Please follow the [Flatpak Setup](https://flatpak.org/setup/) page to install Flatpak based on your distribution.
 
+- Install flatpak runtimes and extensions:
+
+```sh
+flatpak install flathub org.freedesktop.Platform//24.08
+flatpak install flathub org.freedesktop.Sdk//24.08
+flatpak install flathub org.freedesktop.Sdk.Extension.rust-stable//24.08
+flatpak install flathub org.freedesktop.Sdk.Extension.llvm18//24.08
+```
 
 - Generate manifests and build:
 // TODO Exporting to a repository instead
 
 ```sh
 python3 ./flatpak-cargo-generator.py ./Cargo.lock -o cargo-sources.json
-flatpak-builder --user --install --install-deps-from=flathub --force-clean target org.versotile.verso.yml
+flatpak-builder --user --install --force-clean target org.versotile.verso.yml
 flatpak run org.versotile.verso
 ```
 

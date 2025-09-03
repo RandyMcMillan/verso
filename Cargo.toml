@@ -1,15 +1,34 @@
-workspace = {}
+[workspace]
+members = ["verso", "versoview_messages", "versoview_build"]
 
-[package]
-name = "verso"
-version = "0.0.1"
-authors = ["Wu Yu Wei"]
-edition = "2021"
+[workspace.package]
+version = "0.0.3"
+edition = "2024"
 license = "Apache-2.0 OR MIT"
-description = "An innovative web browser"
-readme = "README.md"
 homepage = "https://versotile.org/verso"
 repository = "https://github.com/versotile-org/verso"
+
+[workspace.dependencies]
+serde = { version = "1.0", features = ["derive"] }
+ipc-channel = "0.19"
+bincode = "1"
+url = { version = "2.5.2", features = ["serde"] }
+log = "0.4"
+headers = "0.4"
+http = "1"
+uuid = { version = "1", features = ["v4", "serde"] }
+dpi = { version = "0.1", features = ["serde"] }
+
+[package]
+name = "versoview"
+version.workspace = true
+edition.workspace = true
+authors = ["Wu Yu Wei"]
+license.workspace = true
+description = "An innovative web browser"
+readme = "README.md"
+homepage.workspace = true
+repository.workspace = true
 documentation = "https://docs.versotile.org/verso"
 categories = ["web-programming"]
 
@@ -17,7 +36,7 @@ categories = ["web-programming"]
 name = "verso"
 product-name = "verso"
 identifier = "org.versotile.verso"
-version = "0.0.1"
+version = "0.0.3"
 before-each-package-command = "python etc/package_libs.py"
 resources = [
   "resources",
@@ -39,9 +58,20 @@ targets = [
 ]
 
 [features]
-default = []
+bluetooth = [
+    "bluetooth_traits",
+    "dep:bluetooth",
+    "constellation/bluetooth",
+    "constellation_traits/bluetooth",
+    "script/bluetooth",
+    "script_traits/bluetooth",
+]
+background_hang_monitor = ["background_hang_monitor/sampler"]
+default = ["bluetooth", "background_hang_monitor"]
 packager = ["dep:cargo-packager-resource-resolver"]
 flatpak = []
+tracing = []
+embed-useragent-stylesheets = []
 
 [build-dependencies]
 cfg_aliases = "0.2"
@@ -49,63 +79,91 @@ cfg_aliases = "0.2"
 [dependencies]
 arboard = "3.4.0"
 crossbeam-channel = "0.5"
-env_logger = "0.10"
+env_logger = "0.11"
 euclid = "0.22"
 getopts = "0.2.17"
 gleam = "0.15"
-ipc-channel = "0.18"
+glutin = "0.32.0"
+glutin-winit = "0.5.0"
+ipc-channel = { workspace = true }
 keyboard-types = "0.7"
-log = "0.4"
+log = { workspace = true }
 raw-window-handle = { version = "0.6", features = ["std"] }
+rustls = { version = "0.23", default-features = false, features = ["aws-lc-rs"] }
 sparkle = "0.1.26"
-surfman = { version = "0.9", features = ["chains", "sm-raw-window-handle-06"] }
 thiserror = "1.0"
 winit = { version = "0.30", features = ["rwh_06"] }
+dpi = { workspace = true }
+url = { workspace = true }
+headers = { workspace = true }
+http = { workspace = true }
+versoview_messages = { path = "./versoview_messages" }
+serde = { workspace = true }
+serde_json = "1.0"
+bincode = { workspace = true }
+mime = "0.3"
+uuid = { workspace = true }
+rfd = "0.15"
+reqwest = { version = "0.12", features = ["json", "blocking"] }
+tokio = { version = "1", features = ["full"] }
 # Servo repo crates
-base = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-bluetooth = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-bluetooth_traits = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-canvas = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-compositing_traits = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-constellation = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-devtools = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-embedder_traits = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-fonts = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-layout_thread_2020 = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-media = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-net = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-profile = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-profile_traits = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-script = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-script_traits = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-servo_config = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-servo_geometry = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-servo_url = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-webdriver_server = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-webrender_traits = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
-webgpu = { git = "https://github.com/servo/servo.git", rev = "28430ba" }
+background_hang_monitor = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+base = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+bluetooth = { git = "https://github.com/servo/servo.git", rev = "5e2d42e", optional = true }
+bluetooth_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e", optional = true }
+canvas = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+compositing_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+constellation = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+constellation_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+devtools = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+embedder_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+fonts = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+layout_thread_2020 = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+media = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+net = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+net_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+profile = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+profile_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+script = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+script_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+servo_allocator = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+servo_config = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+servo_geometry = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+servo_url = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+webdriver_server = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+webgpu = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
+webgpu_traits = { git = "https://github.com/servo/servo.git", rev = "5e2d42e" }
 # Servo org crates
 servo-media = { git = "https://github.com/servo/media" }
 servo-media-dummy = { git = "https://github.com/servo/media" }
-style = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
-style_traits = { git = "https://github.com/servo/stylo", branch = "2024-07-16", features = ["servo"] }
-webrender = { git = "https://github.com/servo/webrender", branch = "0.65", features = ["capture"] }
-webrender_api = { git = "https://github.com/servo/webrender", branch = "0.65" }
-webxr = { git = "https://github.com/servo/webxr", features = ["headless"] }
-webxr-api = { git = "https://github.com/servo/webxr" }
+stylo = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
+stylo_traits = { git = "https://github.com/servo/stylo", branch = "2025-03-15" }
+webrender = { git = "https://github.com/servo/webrender", branch = "0.66", features = ["capture"] }
+webrender_api = { git = "https://github.com/servo/webrender", branch = "0.66" }
+wr_malloc_size_of = { git = "https://github.com/servo/webrender", branch = "0.66" }
 # Packager feature
 cargo-packager-resource-resolver = { version = "0.1.1", features = [
   "auto-detect-format",
 ], optional = true }
-url = "2.5.2"
+chrono = "0.4.41"
+percent-encoding = "2.3.1"
+directories = "6.0.0"
 
-[target.'cfg(target_os = "windows")'.dependencies]
-surfman = { version = "0.9", features = ["sm-angle-default"] }
-mozangle = { version = "0.5.1", features = ["egl", "build_dlls"] }
+[target.'cfg(all(unix, not(target_os = "macos"), not(target_os = "ios"), not(target_os = "android")))'.dependencies]
+notify-rust = { version = "4.11.5", features = ["images"] }
+
+[target.'cfg(any(target_os = "macos", target_os = "windows"))'.dependencies]
+notify-rust = "4.11.5"
+muda = "0.15"
 
 [target.'cfg(any(target_os = "ios", target_os = "macos"))'.dependencies]
 objc2 = "0.5"
-objc2-app-kit = {version = "0.2", features = ["NSView", "NSResponder", "NSWindow"]}
+objc2-foundation = { version = "0.2.2", features = ["NSThread"] }
+objc2-app-kit = { version = "0.2", features = [
+  "NSView",
+  "NSResponder",
+  "NSWindow",
+] }
 
 [[test]]
 name = "general"
@@ -114,3 +172,7 @@ harness = false
 [profile.release-lto]
 inherits = "release"
 lto = true
+
+# Tell clippy to allow e.g. #[cfg(macos)]
+[lints.rust]
+unexpected_cfgs = "allow"

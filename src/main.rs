@@ -1,21 +1,27 @@
 // Prevent console window from appearing on Windows
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
-use verso::config::Config;
-use verso::{Result, Verso};
+use versoview::verso::EventLoopProxyMessage;
+use versoview::{Result, Verso};
 use winit::application::ApplicationHandler;
 use winit::event_loop::{self, DeviceEvents};
 use winit::event_loop::{EventLoop, EventLoopProxy};
 
 struct App {
     verso: Option<Verso>,
-    proxy: EventLoopProxy<()>,
+    proxy: EventLoopProxy<EventLoopProxyMessage>,
 }
 
-impl ApplicationHandler for App {
+impl ApplicationHandler<EventLoopProxyMessage> for App {
     fn resumed(&mut self, event_loop: &winit::event_loop::ActiveEventLoop) {
-        let config = Config::new(resources_dir_path().unwrap());
-        self.verso = Some(Verso::new(event_loop, self.proxy.clone(), config));
+        self.verso = Some(Verso::new(event_loop, self.proxy.clone()));
+        self.verso.as_mut().unwrap().init();
+    }
+
+    fn exiting(&mut self, _event_loop: &event_loop::ActiveEventLoop) {
+        if let Some(v) = self.verso.as_mut() {
+            v.before_shutdown();
+        }
     }
 
     fn window_event(
@@ -24,21 +30,37 @@ impl ApplicationHandler for App {
         window_id: winit::window::WindowId,
         event: winit::event::WindowEvent,
     ) {
-        self.verso.as_mut().map(|v| {
-            v.handle_winit_window_event(window_id, event);
-            v.handle_servo_messages(event_loop);
-        });
+        if let Some(v) = self.verso.as_mut() {
+            v.handle_window_event(event_loop, window_id, event);
+        }
     }
 
-    fn user_event(&mut self, event_loop: &event_loop::ActiveEventLoop, _: ()) {
-        self.verso.as_mut().map(|v| {
-            v.handle_servo_messages(event_loop);
-        });
+    fn user_event(
+        &mut self,
+        event_loop: &event_loop::ActiveEventLoop,
+        event: EventLoopProxyMessage,
+    ) {
+        if let Some(v) = self.verso.as_mut() {
+            match event {
+                EventLoopProxyMessage::Wake => {
+                    v.request_redraw(event_loop);
+                }
+                EventLoopProxyMessage::IpcMessage(message) => {
+                    v.handle_incoming_webview_message(*message);
+                }
+                EventLoopProxyMessage::VersoInternalMessage(message) => {
+                    v.handle_verso_internal_message(message);
+                }
+            }
+        }
     }
 }
 
-fn main() -> Result<()> {
-    let event_loop = EventLoop::new()?;
+#[tokio::main]
+async fn main() -> Result<()> {
+    init_crypto();
+
+    let event_loop = EventLoop::<EventLoopProxyMessage>::with_user_event().build()?;
     event_loop.listen_device_events(DeviceEvents::Never);
     let proxy = event_loop.create_proxy();
     let mut app = App { verso: None, proxy };
@@ -47,19 +69,8 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn resources_dir_path() -> Option<std::path::PathBuf> {
-    #[cfg(feature = "packager")]
-    let root_dir = {
-        use cargo_packager_resource_resolver::{current_format, resources_dir};
-        current_format().and_then(|format| resources_dir(format))
-    };
-    #[cfg(feature = "flatpak")]
-    let root_dir = {
-        use std::str::FromStr;
-        std::path::PathBuf::from_str("/app")
-    };
-    #[cfg(not(any(feature = "packager", feature = "flatpak")))]
-    let root_dir = std::env::current_dir();
-
-    root_dir.ok().map(|dir| dir.join("resources"))
+fn init_crypto() {
+    rustls::crypto::aws_lc_rs::default_provider()
+        .install_default()
+        .expect("Error initializing crypto provider");
 }

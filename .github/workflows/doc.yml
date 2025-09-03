@@ -8,51 +8,25 @@ on:
 
 jobs:
   build:
-    runs-on: ubuntu-latest
-    env:
-      RUSTC_WRAPPER: sccache
-      CCACHE: sccache
-      SCCACHE_GHA_ENABLED: 'true'
-      LIBCLANG_PATH: /usr/lib/llvm-14/lib
+    runs-on: ubuntu-24.04
+    permissions:
+      actions: write # for purging
     steps:
-      - name: Checkout branch
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: nixbuild/nix-quick-install-action@v28
 
-      - name: Install Rust
-        uses: dsherret/rust-toolchain-file@v1
-
-      - name: Install dependencies
+      - name: "Add Nix channel"
         run: |
-          sudo apt-get update
-          sudo apt install build-essential python3-pip ccache clang cmake curl \
-            g++ git gperf libdbus-1-dev libfreetype6-dev libgl1-mesa-dri \
-            libgles2-mesa-dev libglib2.0-dev libgstreamer-plugins-base1.0-dev \
-            gstreamer1.0-plugins-good libgstreamer-plugins-good1.0-dev \
-            gstreamer1.0-plugins-bad libgstreamer-plugins-bad1.0-dev \
-            gstreamer1.0-plugins-ugly gstreamer1.0-plugins-base \
-            libgstreamer-plugins-base1.0-dev gstreamer1.0-libav \
-            libgstrtspserver-1.0-dev gstreamer1.0-tools libges-1.0-dev \
-            libharfbuzz-dev liblzma-dev libunwind-dev libunwind-dev libvulkan1 \
-            libx11-dev libxcb-render0-dev libxcb-shape0-dev libxcb-xfixes0-dev \
-            libxmu-dev libxmu6 libegl1-mesa-dev llvm-dev m4 xorg-dev sway \
-            python3-mako
+          nix-channel --add https://nixos.org/channels/nixos-24.05 nixpkgs
+          nix-channel --update nixpkgs
 
-      - name: Run sccache-cache
-        uses: Mozilla-Actions/sccache-action@v0.0.5
+      - name: "Build Verso docs"
+        run: nix-shell shell.nix --run 'cargo doc --workspace --no-deps'
 
-      - name: Configure cache
-        uses: Swatinem/rust-cache@v2
-
-      - name: Clean docs folder
-        run: cargo clean --doc
-
-      - name: Build docs
-        run: cargo doc -p verso --no-deps
-
-      - name: Remove lock file
+      - name: "Remove doc lock file"
         run: rm target/doc/.lock
 
-      - name: Upload `doc`
+      - name: "Upload `doc` artifact"
         uses: actions/upload-artifact@v4
         with:
           name: doc
@@ -63,33 +37,28 @@ jobs:
     runs-on: ubuntu-latest
     needs: build
     steps:
-      - name: Checkout `docs` repository
+      - name: "Checkout `docs` repository"
         uses: actions/checkout@v4
         with:
-          repository: versotile-org/docs.versotile.org
+          repository: versotile-org/www-docs
           ssh-key: ${{ secrets.DOCS_DEPLOY_KEY }}
           ref: docs
 
-      - name: Clean up docs directory
-        run: |
-          cp {docs/,}index.html
-          rm -r docs/*
-          mv index.html docs/
-          cp CNAME docs/
-
-      - name: Download `doc`
+      - name: "Download `doc` artifact"
         uses: actions/download-artifact@v4
         with:
           name: doc
-          path: docs
+          path: artifact
 
-      - name: Configure Git
+      - name: "Configure git, commit changes and PUSH"
         run: |
           git config user.name 'github-actions[bot]'
           git config user.email 'github-actions[bot]@users.noreply.github.com'
-
-      - name: Commit and push
-        run: |
-          git add docs
-          git commit -m ":rocket: update docs from \`verso\` repository"
+          rm -r docs/*
+          cp -r artifact/* docs/
+          git add docs/
+          git fetch origin main:main
+          git checkout main docs/
+          git status
+          git commit -m ":rocket: update docs from \`verso\` repository" || exit 0
           git push origin docs
